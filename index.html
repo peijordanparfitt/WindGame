@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+<html> 
+  <head> 
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=7, IE=9, IE=10">
+    <!--The viewport meta tag is used to improve the presentation and behavior of the samples 
+      on iOS devices-->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>Map with scalebar</title>
+
+    <link rel="stylesheet" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.4/js/dojo/dijit/themes/claro/claro.css"> 
+    <link rel="stylesheet" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.4/js/esri/css/esri.css">
+    <style> 
+      html, body { height: 100%; width: 100%; margin: 0; padding: 0; }
+      #map {
+          padding:0;
+      }      
+      #go {
+        -moz-border-radius:10px;  /* for Firefox */
+        -webkit-border-radius:10px; /* for Webkit-Browsers */
+        border-radius:10px; /* regular */
+        display: block;
+        position: absolute;
+        z-index: 2;
+        top: 20px;
+        left: 60px;
+        background-color:#FFFFFF; 
+        padding: 5px 5px 5px 5px;
+        border: 1px solid black;
+      }
+      
+      #score 
+      {
+        -moz-border-radius:10px;  /* for Firefox */
+        -webkit-border-radius:10px; /* for Webkit-Browsers */
+        border-radius:10px; /* regular */
+        display: block;
+        position: absolute;
+        z-index: 2;
+        top: 20px;
+        right: 50px;
+        background-color:#FFFFFF;
+        padding: 5px 5px 5px 5px;
+        border: 1px solid black;
+      }
+
+    </style> 
+
+    <script>        var dojoConfig = { parseOnLoad: true };</script>
+    <script src="http://serverapi.arcgisonline.com/jsapi/arcgis/3.4/"></script>
+    <script>
+        dojo.require("dojo.parser");
+        dojo.require("dijit.layout.BorderContainer");
+        dojo.require("dijit.layout.ContentPane");
+        dojo.require("esri.map");
+        dojo.require("esri.dijit.Scalebar");
+        
+        var map;
+        var graphicOne;
+        var graphicTwo;
+        var graphicThree;
+
+        function init() {
+            map = new esri.Map("map", {
+                basemap: "topo",
+                center: [-116.093, 34.218],
+                zoom: 7
+            });
+
+            dojo.connect(map, "onLoad", function (theMap) {
+                var scalebar = new esri.dijit.Scalebar({
+                    map: map,
+                    // "dual" displays both miles and kilmometers
+                    // "english" is the default, which displays miles
+                    // use "metric" for kilometers
+                    scalebarUnit: "dual"
+                });
+
+                var baseLayer = new esri.layers.ArcGISDynamicMapServiceLayer("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameBaseMap/MapServer", { opacity: 1 });
+                map.addLayer(baseLayer);
+
+                dojo.connect(map, "onClick", addPoint);
+
+
+                var queryTaskOne = new esri.tasks.QueryTask("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/0");
+                queryTaskOne.method = "POST";
+                // Query
+                var queryOne = new esri.tasks.Query(); 
+                var dirty = (new Date()).getTime();
+                var queryOne = new esri.tasks.Query();
+                queryOne.where = dirty + "=" + dirty;
+                queryOne.returnGeometry = true;
+                dojo.connect(queryTaskOne, "onComplete", function (graphics) {
+                    graphicOne = graphics.features[0];
+                });
+                queryTaskOne.execute(queryOne);
+            });
+        }
+        
+        function addPoint(event) {
+            if (map.graphics.graphics.length == 16) {
+                alert("No Cheating!!! Only 15!!!");
+            }
+            else {
+                var symbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_CIRCLE, 10, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, new dojo.Color([255, 0, 0]), 1), new dojo.Color([0, 0, 0, 0.25]))
+                var graphic = new esri.Graphic(event.mapPoint, symbol);
+                map.graphics.add(graphic);
+            }
+        }
+
+        function execute(event) {
+            if (map.graphics.graphics.length == 16) {
+                var count = 0;
+                for (var i = 0; i < map.graphics.graphics.length; i++) {
+                    if (!graphicOne.geometry.contains(map.graphics.graphics[i].geometry)) {
+                        count++;
+                    }
+                }
+                alert(count);
+            }
+            else {
+                alert("You need 15 turbines!!!");
+            }
+        }
+
+
+        dojo.ready(init);
+    </script> 
+  </head> 
+  
+  <body class="claro"> 
+      <div id="go" style="text-align: center;">
+        <select id="setbackList">
+          <option>Setback One</option>
+          <option>Setback Two</option>
+          <option>Setback Three</option>
+        </select>
+        <br />
+        <input type="button" name="Play" id="btnPlay" value="Play" onclick="execute()"></input>
+        <br />
+        <a onclick="map.graphics.clear();" href="#">clear</a>
+      </div>
+      <div id="score">Score:</div>
+    <div data-dojo-type="dijit.layout.BorderContainer" 
+         data-dojo-props="design:'headline', gutters:false"
+         style="width: 100%; height: 100%; margin: 0;"> 
+         
+      <div id="map" 
+           data-dojo-type="dijit.layout.ContentPane" 
+           data-dojo-props="region:'center'" 
+           style="overflow:hidden;"> 
+      </div> 
+
+    </div> 
+  </body> 
+</html>
