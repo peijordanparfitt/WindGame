@@ -22,11 +22,11 @@
         display: block;
         position: absolute;
         z-index: 2;
-        top: 20px;
-        left: 60px;
+        top: 100px;
+        left: 20px;
         background-color:#FFFFFF; 
         padding: 5px 5px 5px 5px;
-        border: 1px solid black;
+        border: 2px solid #737373;
       }
       
       #score 
@@ -37,11 +37,11 @@
         display: block;
         position: absolute;
         z-index: 2;
-        top: 20px;
-        right: 50px;
+        top: 200px;
+        left: 20px;
         background-color:#FFFFFF;
         padding: 5px 5px 5px 5px;
-        border: 1px solid black;
+        border: 2px solid #737373;
       }
 
     </style> 
@@ -63,9 +63,10 @@
         function init() {
             map = new esri.Map("map", {
                 basemap: "topo",
-                center: [-116.093, 34.218],
-                zoom: 7
+                center: [-100.252, 38.587],
+                zoom: 11
             });
+
 
             dojo.connect(map, "onLoad", function (theMap) {
                 var scalebar = new esri.dijit.Scalebar({
@@ -83,7 +84,6 @@
 
 
                 var queryTaskOne = new esri.tasks.QueryTask("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/0");
-                queryTaskOne.method = "POST";
                 // Query
                 var queryOne = new esri.tasks.Query(); 
                 var dirty = (new Date()).getTime();
@@ -94,6 +94,31 @@
                     graphicOne = graphics.features[0];
                 });
                 queryTaskOne.execute(queryOne);
+
+
+                var queryTaskTwo = new esri.tasks.QueryTask("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/1");
+                // Query
+                var queryTwo = new esri.tasks.Query();
+                var dirty = (new Date()).getTime();
+                var queryTwo = new esri.tasks.Query();
+                queryTwo.where = dirty + "=" + dirty;
+                queryTwo.returnGeometry = true;
+                dojo.connect(queryTaskTwo, "onComplete", function (graphics) {
+                    graphicTwo = graphics.features[0];
+                });
+                queryTaskTwo.execute(queryTwo);
+
+                var queryTaskThree = new esri.tasks.QueryTask("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/2");
+                // Query
+                var queryThree = new esri.tasks.Query();
+                var dirty = (new Date()).getTime();
+                var queryThree = new esri.tasks.Query();
+                queryThree.where = dirty + "=" + dirty;
+                queryThree.returnGeometry = true;
+                dojo.connect(queryTaskThree, "onComplete", function (graphics) {
+                    graphicThree = graphics.features[0];
+                });
+                queryTaskThree.execute(queryThree);
             });
         }
         
@@ -110,20 +135,41 @@
 
         function execute(event) {
             if (map.graphics.graphics.length == 16) {
+                var selection = getSelectedText('setbackList');
+
+                var useGraphic;
+                if (selection == "Setback One") {
+                    useGraphic = graphicOne;
+                }
+                if (selection == "Setback Two") {
+                    useGraphic = graphicTwo;
+                }
+                if (selection == "Setback Three") {
+                    useGraphic = graphicThree;
+                }
                 var count = 0;
                 for (var i = 0; i < map.graphics.graphics.length; i++) {
-                    if (!graphicOne.geometry.contains(map.graphics.graphics[i].geometry)) {
+                    if (!useGraphic.geometry.contains(map.graphics.graphics[i].geometry)) {
                         count++;
                     }
                 }
-                alert(count);
+                document.getElementById('score').style.display = 'block';
+                count--
+                document.getElementById('score').innerHTML = "<b>Score:</b> " + count.toString();
             }
             else {
                 alert("You need 15 turbines!!!");
             }
         }
 
+        function getSelectedText(elementId) {
+            var elt = document.getElementById(elementId);
 
+            if (elt.selectedIndex == -1)
+                return null;
+
+            return elt.options[elt.selectedIndex].text;
+        }
         dojo.ready(init);
     </script> 
   </head> 
@@ -138,9 +184,9 @@
         <br />
         <input type="button" name="Play" id="btnPlay" value="Play" onclick="execute()"></input>
         <br />
-        <a onclick="map.graphics.clear();" href="#">clear</a>
+        <a onclick="map.graphics.clear();document.getElementById('score').style.display = 'none';" href="#">clear</a>
       </div>
-      <div id="score">Score:</div>
+      <div id="score" style="display: none;"></div>
     <div data-dojo-type="dijit.layout.BorderContainer" 
          data-dojo-props="design:'headline', gutters:false"
          style="width: 100%; height: 100%; margin: 0;"> 
