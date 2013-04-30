@@ -6,7 +6,7 @@
     <!--The viewport meta tag is used to improve the presentation and behavior of the samples 
       on iOS devices-->
     <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
-    <title>Map with scalebar</title>
+    <title>Patrick Engineering</title>
 
     <link rel="stylesheet" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.4/js/dojo/dijit/themes/claro/claro.css"> 
     <link rel="stylesheet" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.4/js/esri/css/esri.css">
@@ -16,9 +16,9 @@
           padding:0;
       }      
       #go {
-        -moz-border-radius:10px;  /* for Firefox */
-        -webkit-border-radius:10px; /* for Webkit-Browsers */
-        border-radius:10px; /* regular */
+        -moz-border-radius: 5px;  /* for Firefox */
+        -webkit-border-radius: 5px; /* for Webkit-Browsers */
+        border-radius: 5px; /* regular */
         display: block;
         position: absolute;
         z-index: 2;
@@ -31,9 +31,9 @@
       
       #score 
       {
-        -moz-border-radius:10px;  /* for Firefox */
-        -webkit-border-radius:10px; /* for Webkit-Browsers */
-        border-radius:10px; /* regular */
+        -moz-border-radius: 5px;  /* for Firefox */
+        -webkit-border-radius: 5px; /* for Webkit-Browsers */
+        border-radius: 5px; /* regular */
         display: block;
         position: absolute;
         z-index: 2;
@@ -43,6 +43,72 @@
         padding: 5px 5px 5px 5px;
         border: 2px solid #737373;
       }
+      
+      #legendPane 
+      {
+        -moz-border-radius: 5px;  /* for Firefox */
+        -webkit-border-radius: 5px; /* for Webkit-Browsers */
+        border-radius: 5px; /* regular */
+        display: block;
+        position: absolute;
+        z-index: 2;
+        top: 10px; 
+        max-height:95%;
+        right: 20px;
+        background-color:#FFFFFF;
+        padding: 5px 5px 5px 5px;
+        border: 2px solid #737373;
+      }
+      
+      #description 
+      {
+        -moz-border-radius: 5px;  /* for Firefox */
+        -webkit-border-radius: 5px; /* for Webkit-Browsers */
+        border-radius: 5px; /* regular */
+        display: block;
+        margin: 0 auto; 
+        z-index: 2;
+        display: block;
+        bottom: 5px;
+        left: 35%;
+        width: 30%;
+        position: absolute;
+        text-align: center; 
+        background-color:#FFFFFF;
+        padding: 5px 5px 5px 5px;
+        border: 2px solid #737373;
+      }
+      
+      #logo 
+      {
+        display: block;
+        margin: 0 auto; 
+        z-index: 2;
+        display: block;
+        bottom: 5px;
+        left: 20px;
+        position: absolute;
+        padding: 5px 5px 5px 5px;
+      }
+      
+      .sebackDiv 
+      {
+        -moz-border-radius: 5px;  /* for Firefox */
+        -webkit-border-radius: 5px; /* for Webkit-Browsers */
+        border-radius: 5px; /* regular */
+        display: block;
+        margin: 0 auto; 
+        z-index: 2;
+        display: block;
+        top: 250px;
+        left: 20px;
+        position: absolute;
+        background-color:#FFFFFF;
+        padding: 5px 5px 5px 5px;
+        border: 2px solid #737373;
+      }
+      
+      
 
     </style> 
 
@@ -54,11 +120,18 @@
         dojo.require("dijit.layout.ContentPane");
         dojo.require("esri.map");
         dojo.require("esri.dijit.Scalebar");
+        dojo.require("esri.dijit.Legend");
+        dojo.require("esri.layers.FeatureLayer");
+        dojo.require("esri.symbol");
         
         var map;
-        var graphicOne;
-        var graphicTwo;
-        var graphicThree;
+        var graphicOne, graphicTwo, graphicThree;
+        var setbackLayerOne, setbackLayerTwo, setbackLayerThree;
+
+        var setbackOneURL = "http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/0";
+        var setbackTwoURL = "http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/1";
+        var setbackThreeURL = "http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/2";
+        var baseURL = "http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameBaseMap/MapServer";
 
         function init() {
             map = new esri.Map("map", {
@@ -67,126 +140,228 @@
                 zoom: 11
             });
 
+            var baseLayer = new esri.layers.ArcGISDynamicMapServiceLayer(baseURL, { opacity: 1 });
+            map.addLayer(baseLayer);
 
-            dojo.connect(map, "onLoad", function (theMap) {
-                var scalebar = new esri.dijit.Scalebar({
-                    map: map,
-                    // "dual" displays both miles and kilmometers
-                    // "english" is the default, which displays miles
-                    // use "metric" for kilometers
-                    scalebarUnit: "dual"
-                });
+            //add setback feature layers
+            setbackLayerOne = new esri.layers.FeatureLayer(setbackOneURL, { opacity: 1, visible: false });
+            setbackLayerTwo = new esri.layers.FeatureLayer(setbackTwoURL, { opacity: 1, visible: false });
+            setbackLayerThree = new esri.layers.FeatureLayer(setbackThreeURL, { opacity: 1, visible: false });
+            map.addLayer(setbackLayerOne);
+            map.addLayer(setbackLayerTwo);
+            map.addLayer(setbackLayerThree);
 
-                var baseLayer = new esri.layers.ArcGISDynamicMapServiceLayer("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameBaseMap/MapServer", { opacity: 1 });
-                map.addLayer(baseLayer);
+            dojo.connect(map, "onClick", addPoint);
 
-                dojo.connect(map, "onClick", addPoint);
+            getSetbackGraphics();
 
+            //add the legend
+            try //use try/catch to block error
+            {
+                var layerInfo = [{ layer: baseLayer, title: "Map Layers"}];
+                if (layerInfo.length > 0) {
+                    var legendDijit = new esri.dijit.Legend({
+                        map: map,
+                        layerInfos: layerInfo
+                    }, "legendDiv");
+                    legendDijit.startup();
+                }
+            }
+            catch (error) {
 
-                var queryTaskOne = new esri.tasks.QueryTask("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/0");
-                // Query
-                var queryOne = new esri.tasks.Query(); 
-                var dirty = (new Date()).getTime();
-                var queryOne = new esri.tasks.Query();
-                queryOne.where = dirty + "=" + dirty;
-                queryOne.returnGeometry = true;
-                dojo.connect(queryTaskOne, "onComplete", function (graphics) {
-                    graphicOne = graphics.features[0];
-                });
-                queryTaskOne.execute(queryOne);
-
-
-                var queryTaskTwo = new esri.tasks.QueryTask("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/1");
-                // Query
-                var queryTwo = new esri.tasks.Query();
-                var dirty = (new Date()).getTime();
-                var queryTwo = new esri.tasks.Query();
-                queryTwo.where = dirty + "=" + dirty;
-                queryTwo.returnGeometry = true;
-                dojo.connect(queryTaskTwo, "onComplete", function (graphics) {
-                    graphicTwo = graphics.features[0];
-                });
-                queryTaskTwo.execute(queryTwo);
-
-                var queryTaskThree = new esri.tasks.QueryTask("http://gisdev2.patrickco.com/arcgis/rest/services/AWEA/GameSetbacks/MapServer/2");
-                // Query
-                var queryThree = new esri.tasks.Query();
-                var dirty = (new Date()).getTime();
-                var queryThree = new esri.tasks.Query();
-                queryThree.where = dirty + "=" + dirty;
-                queryThree.returnGeometry = true;
-                dojo.connect(queryTaskThree, "onComplete", function (graphics) {
-                    graphicThree = graphics.features[0];
-                });
-                queryTaskThree.execute(queryThree);
-            });
+            }
         }
-        
+
+        function getSetbackGraphics() {
+            //one
+            var queryTaskOne = new esri.tasks.QueryTask(setbackOneURL);
+            // Query
+            var queryOne = new esri.tasks.Query();
+            var dirty = (new Date()).getTime();
+            var queryOne = new esri.tasks.Query();
+            queryOne.where = dirty + "=" + dirty;
+            queryOne.returnGeometry = true;
+            dojo.connect(queryTaskOne, "onComplete", function (graphics) {
+                graphicOne = graphics.features[0];
+            });
+            queryTaskOne.execute(queryOne);
+
+            //two
+            var queryTaskTwo = new esri.tasks.QueryTask(setbackTwoURL);
+            // Query
+            var queryTwo = new esri.tasks.Query();
+            var dirty = (new Date()).getTime();
+            var queryTwo = new esri.tasks.Query();
+            queryTwo.where = dirty + "=" + dirty;
+            queryTwo.returnGeometry = true;
+            dojo.connect(queryTaskTwo, "onComplete", function (graphics) {
+                graphicTwo = graphics.features[0];
+            });
+            queryTaskTwo.execute(queryTwo);
+
+            //three
+            var queryTaskThree = new esri.tasks.QueryTask(setbackThreeURL);
+            // Query
+            var queryThree = new esri.tasks.Query();
+            var dirty = (new Date()).getTime();
+            var queryThree = new esri.tasks.Query();
+            queryThree.where = dirty + "=" + dirty;
+            queryThree.returnGeometry = true;
+            dojo.connect(queryTaskThree, "onComplete", function (graphics) {
+                graphicThree = graphics.features[0];
+            });
+            queryTaskThree.execute(queryThree);
+        }
+
         function addPoint(event) {
-            if (map.graphics.graphics.length == 16) {
+            if (map.graphics.graphics.length == 16) { //don't allow more than 15
                 alert("No Cheating!!! Only 15!!!");
             }
             else {
-                var symbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_CIRCLE, 10, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, new dojo.Color([255, 0, 0]), 1), new dojo.Color([0, 0, 0, 0.25]))
-                var graphic = new esri.Graphic(event.mapPoint, symbol);
+                //add graphic
+                var untestedSymbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_CIRCLE, 15, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, new dojo.Color([0, 0, 255]), 1), new dojo.Color([0, 0, 0, 0.25]));
+                var graphic = new esri.Graphic(event.mapPoint, untestedSymbol);
                 map.graphics.add(graphic);
+                //update count
+                var count = map.graphics.graphics.length - 1;
+                document.getElementById('count').innerHTML = "<b>Count:</b> " + count;
             }
         }
 
         function execute(event) {
             if (map.graphics.graphics.length == 16) {
-                var selection = getSelectedText('setbackList');
 
-                var useGraphic;
-                if (selection == "Setback One") {
-                    useGraphic = graphicOne;
-                }
-                if (selection == "Setback Two") {
-                    useGraphic = graphicTwo;
-                }
-                if (selection == "Setback Three") {
-                    useGraphic = graphicThree;
-                }
-                var count = 0;
+                turnOff();
+
+                var useGraphic = getCurrentSetbackGraphic();
+
+                var score = 0;
+
                 for (var i = 0; i < map.graphics.graphics.length; i++) {
                     if (!useGraphic.geometry.contains(map.graphics.graphics[i].geometry)) {
-                        count++;
+                        var successSymbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_CIRCLE, 15, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, new dojo.Color([0, 225, 0]), 1), new dojo.Color([0, 225, 0, 1]));
+                        map.graphics.graphics[i].symbol = successSymbol;
+                        score++;
+                    }
+                    else {
+                        var failSymbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_CIRCLE, 15, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, new dojo.Color([255, 0, 0]), 1), new dojo.Color([255, 0, 0, 1]));
+                        map.graphics.graphics[i].symbol = failSymbol;
                     }
                 }
                 document.getElementById('score').style.display = 'block';
-                count--
-                document.getElementById('score').innerHTML = "<b>Score:</b> " + count.toString();
+                score--
+                document.getElementById('score').innerHTML = "<b>Score:</b> " + score.toString();
+                map.graphics.redraw(); //refreshes for the new symbols
             }
             else {
                 alert("You need 15 turbines!!!");
             }
         }
 
+        function getCurrentSetbackGraphic() {
+            var selection = getSelectedText('setbackList'); //get selected setback
+
+            if (selection == "Setback One") {
+                document.getElementById('setbackOne').style.display = 'block';
+                setbackLayerTwo.show();
+                return graphicOne;
+            }
+            if (selection == "Setback Two") {
+                document.getElementById('setbackTwo').style.display = 'block';
+                setbackLayerTwo.show();
+                return graphicTwo;
+            }
+            if (selection == "Setback Three") {
+                document.getElementById('setbackThree').style.display = 'block';
+                setbackLayerTwo.show();
+                return graphicThree;
+            }
+        }
+
+        //returns selected element of an html select
         function getSelectedText(elementId) {
             var elt = document.getElementById(elementId);
-
             if (elt.selectedIndex == -1)
                 return null;
-
             return elt.options[elt.selectedIndex].text;
         }
+
+        function turnOff() {
+            setbackLayerOne.hide();
+            setbackLayerTwo.hide();
+            setbackLayerThree.hide();
+            document.getElementById('setbackOne').style.display = 'none';
+            document.getElementById('setbackTwo').style.display = 'none';
+            document.getElementById('setbackThree').style.display = 'none';
+        }
+
         dojo.ready(init);
     </script> 
   </head> 
   
   <body class="claro"> 
+      <div id="description">Create five wind turnbines within the bounds of the map layer. Click play and select a setback to see if your turnbines comply.</div>
       <div id="go" style="text-align: center;">
         <select id="setbackList">
           <option>Setback One</option>
           <option>Setback Two</option>
           <option>Setback Three</option>
         </select>
-        <br />
-        <input type="button" name="Play" id="btnPlay" value="Play" onclick="execute()"></input>
-        <br />
-        <a onclick="map.graphics.clear();document.getElementById('score').style.display = 'none';" href="#">clear</a>
+        <div id="count" style="padding-top: 5px;">
+            <b>Count: </b> 0
+        </div>
+        <div style="padding-top: 5px;">
+            <input type="button" name="Play" id="btnPlay" value="Play" onclick="execute()"></input>
+            <a onclick="map.graphics.clear();document.getElementById('score').style.display = 'none';document.getElementById('count').innerHTML='<b>Count:</b> 0';turnOff();" href="#">clear</a>
+        </div>
       </div>
       <div id="score" style="display: none;"></div>
+
+        <div data-dojo-type="dijit.layout.ContentPane" id="legendPane" 
+               data-dojo-props="title:'Legend', selected:true">
+            <div id="legendDiv"></div>
+          </div>
+
+          
+      <div id="setbackOne" class="sebackDiv" style="display: none;"> 
+        <b>Setback Description</b> <br />
+        Roads – 1000’<br />
+        Railroads – 1000’<br />
+        Occupied Structures – 2000’<br />
+        Unoccupied Structures – 750’<br />
+        Gas Pipeline – 250’<br />
+        NWI Wetlands – 250’<br />
+        Non-Participating Parcel – 1500’<br />
+      </div> 
+          
+      <div id="setbackTwo" class="sebackDiv" style="display: none;">
+        <b>Setback Description</b> <br />
+        Roads – 750’<br />
+        Railroads – 1200’<br />
+        Occupied Structures – 2500’<br />
+        Unoccupied Structures – 1000’<br />
+        Gas Pipeline – 200’<br />
+        NWI Wetlands – 500’<br />
+        Non-Participating Parcel – 2500’<br />
+      </div> 
+          
+    <div id="setbackThree" class="sebackDiv" style="display: none;"> 
+        <b>Setback Description</b> <br />
+        Roads – 1250’<br />
+        Railroads – 1250’<br />
+        Occupied Structures – 1250’<br />
+        Unoccupied Structures – 750’<br />
+        Endangered Eagle’s Nest – 5 Miles<br />
+        Gas Pipeline – 300’<br />
+        NWI Wetlands – 750’<br />
+        Non-Participating Parcel – 1500’<br />
+      </div> 
+          
+
+      <div id="logo"> 
+        <img src="images/logo.png" />
+      </div> 
+
     <div data-dojo-type="dijit.layout.BorderContainer" 
          data-dojo-props="design:'headline', gutters:false"
          style="width: 100%; height: 100%; margin: 0;"> 
@@ -196,7 +371,6 @@
            data-dojo-props="region:'center'" 
            style="overflow:hidden;"> 
       </div> 
-
     </div> 
   </body> 
 </html>
