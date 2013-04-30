@@ -213,7 +213,13 @@
             queryTaskThree.execute(queryThree);
         }
 
+        var first = true;
         function addPoint(event) {
+            if (first) {
+                map.graphics.clear();
+                first = false;
+            }
+            
             if (map.graphics.graphics.length == 16) { //don't allow more than 15
                 alert("No Cheating!!! Only 15!!!");
             }
@@ -223,7 +229,7 @@
                 var graphic = new esri.Graphic(event.mapPoint, untestedSymbol);
                 map.graphics.add(graphic);
                 //update count
-                var count = map.graphics.graphics.length - 1;
+                var count = map.graphics.graphics.length;
                 document.getElementById('count').innerHTML = "<b>Count:</b> " + count;
             }
         }
@@ -249,7 +255,6 @@
                     }
                 }
                 document.getElementById('score').style.display = 'block';
-                score--
                 document.getElementById('score').innerHTML = "<b>Score:</b> " + score.toString();
                 map.graphics.redraw(); //refreshes for the new symbols
             }
@@ -263,7 +268,7 @@
 
             if (selection == "Setback One") {
                 document.getElementById('setbackOne').style.display = 'block';
-                setbackLayerTwo.show();
+                setbackLayerOne.show();
                 return graphicOne;
             }
             if (selection == "Setback Two") {
@@ -273,7 +278,7 @@
             }
             if (selection == "Setback Three") {
                 document.getElementById('setbackThree').style.display = 'block';
-                setbackLayerTwo.show();
+                setbackLayerThree.show();
                 return graphicThree;
             }
         }
@@ -300,7 +305,7 @@
   </head> 
   
   <body class="claro"> 
-      <div id="description">Create five wind turnbines within the bounds of the map layer. Click play and select a setback to see if your turnbines comply.</div>
+      <div id="description">Place 15 wind turbines within the Wind Farm Study Area by clicking on the map.  Select a setback scenario and then click Play to see if your turbine locations comply.</div>
       <div id="go" style="text-align: center;">
         <select id="setbackList">
           <option>Setback One</option>
@@ -312,7 +317,7 @@
         </div>
         <div style="padding-top: 5px;">
             <input type="button" name="Play" id="btnPlay" value="Play" onclick="execute()"></input>
-            <a onclick="map.graphics.clear();document.getElementById('score').style.display = 'none';document.getElementById('count').innerHTML='<b>Count:</b> 0';turnOff();" href="#">clear</a>
+            <a onclick="first = true;map.graphics.clear();document.getElementById('score').style.display = 'none';document.getElementById('count').innerHTML='<b>Count:</b> 0';turnOff();" href="#">clear</a>
         </div>
       </div>
       <div id="score" style="display: none;"></div>
